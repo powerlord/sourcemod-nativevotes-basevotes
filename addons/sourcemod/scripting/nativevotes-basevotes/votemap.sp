@@ -44,29 +44,60 @@ DisplayVoteMapMenu(client, mapCount, String:maps[5][])
 	
 	g_voteType = voteType:map;
 	
-	new Handle:voteMenu = CreateMenu(Handler_VoteCallback, MenuAction:MENU_ACTIONS_ALL);
-	
-	if (mapCount == 1)
+	if (g_NativeVotes)
 	{
-		strcopy(g_voteInfo[VOTE_NAME], sizeof(g_voteInfo[]), maps[0]);
+		new Handle:voteMenu;
+		
+		if (mapCount == 1)
+		{
+			strcopy(g_voteInfo[VOTE_NAME], sizeof(g_voteInfo[]), maps[0]);
 			
-		SetMenuTitle(voteMenu, "Change Map To");
-		AddMenuItem(voteMenu, maps[0], "Yes");
-		AddMenuItem(voteMenu, VOTE_NO, "No");
+			voteMenu = NativeVotes_Create(Handler_NativeVoteCallback, NativeVotesType_ChgLevel, MenuAction:MENU_ACTIONS_ALL);
+			
+			// No title, builtin type
+			NativeVotes_SetDetails(voteMenu, maps[0]);
+		}
+		else
+		{
+			voteMenu = NativeVotes_Create(Handler_NativeVoteCallback, NativeVotesType_NextLevelMult, MenuAction:MENU_ACTIONS_ALL);
+
+			g_voteInfo[VOTE_NAME][0] = '\0';
+			
+			// No title, builtin type
+			for (new i = 0; i < mapCount; i++)
+			{
+				NativeVotes_AddItem(voteMenu, maps[i], maps[i]);
+			}
+		}
+		
+		NativeVotes_DisplayToAll(voteMenu, 20);
 	}
 	else
 	{
-		g_voteInfo[VOTE_NAME][0] = '\0';
+		new Handle:voteMenu = CreateMenu(Handler_VoteCallback, MenuAction:MENU_ACTIONS_ALL);
 		
-		SetMenuTitle(voteMenu, "Map Vote");
-		for (new i = 0; i < mapCount; i++)
+		if (mapCount == 1)
 		{
-			AddMenuItem(voteMenu, maps[i], maps[i]);
-		}	
+			strcopy(g_voteInfo[VOTE_NAME], sizeof(g_voteInfo[]), maps[0]);
+				
+			SetMenuTitle(voteMenu, "Change Map To");
+			AddMenuItem(voteMenu, maps[0], "Yes");
+			AddMenuItem(voteMenu, VOTE_NO, "No");
+		}
+		else
+		{
+			g_voteInfo[VOTE_NAME][0] = '\0';
+			
+			SetMenuTitle(voteMenu, "Map Vote");
+			for (new i = 0; i < mapCount; i++)
+			{
+				AddMenuItem(voteMenu, maps[i], maps[i]);
+			}	
+		}
+		
+		SetMenuExitButton(voteMenu, false);
+		VoteMenuToAll(voteMenu, 20);
 	}
-	
-	SetMenuExitButton(voteMenu, false);
-	VoteMenuToAll(voteMenu, 20);		
 }
 
 ResetMenu()
@@ -219,7 +250,7 @@ public Action:Command_Votemap(client, args)
 		return Plugin_Handled;	
 	}
 	
-	if (IsVoteInProgress())
+	if (Internal_IsVoteInProgress())
 	{
 		ReplyToCommand(client, "[SM] %t", "Vote in Progress");
 		return Plugin_Handled;

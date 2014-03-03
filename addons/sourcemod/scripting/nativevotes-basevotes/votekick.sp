@@ -44,13 +44,22 @@ DisplayVoteKickMenu(client, target)
 	
 	g_voteType = voteType:kick;
 	
-	new Handle:voteMenu = CreateMenu(Handler_VoteCallback, MenuAction:MENU_ACTIONS_ALL);
-	SetMenuTitle(voteMenu, "Votekick Player");
-	AddMenuItem(voteMenu, VOTE_YES, "Yes");
-	AddMenuItem(voteMenu, VOTE_NO, "No");
-	SetMenuExitButton(voteMenu, false);
-	VoteMenuToAll(voteMenu, 20);
-
+	if (g_NativeVotes)
+	{
+		new Handle:voteMenu = NativeVotes_Create(Handler_NativeVoteCallback, NativeVotesType_Kick, MenuAction:MENU_ACTIONS_ALL);
+		// No title, builtin type
+		NativeVotes_SetTarget(voteMenu, target);
+		NativeVotes_DisplayToAll(voteMenu, 20);
+	}
+	else
+	{
+		new Handle:voteMenu = CreateMenu(Handler_VoteCallback, MenuAction:MENU_ACTIONS_ALL);
+		SetMenuTitle(voteMenu, "Votekick Player");
+		AddMenuItem(voteMenu, VOTE_YES, "Yes");
+		AddMenuItem(voteMenu, VOTE_NO, "No");
+		SetMenuExitButton(voteMenu, false);
+		VoteMenuToAll(voteMenu, 20);
+	}
 }
 
 DisplayKickTargetMenu(client)
@@ -134,7 +143,7 @@ public Action:Command_Votekick(client, args)
 		return Plugin_Handled;	
 	}
 	
-	if (IsVoteInProgress())
+	if (Internal_IsVoteInProgress())
 	{
 		ReplyToCommand(client, "[SM] %t", "Vote in Progress");
 		return Plugin_Handled;

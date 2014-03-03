@@ -44,12 +44,22 @@ DisplayVoteBanMenu(client, target)
 
 	g_voteType = voteType:ban;
 	
-	new Handle:voteMenu = CreateMenu(Handler_VoteCallback, MenuAction:MENU_ACTIONS_ALL);
-	SetMenuTitle(voteMenu, "Voteban Player");
-	AddMenuItem(voteMenu, VOTE_YES, "Yes");
-	AddMenuItem(voteMenu, VOTE_NO, "No");
-	SetMenuExitButton(voteMenu, false);
-	VoteMenuToAll(voteMenu, 20);
+	if (g_NativeVotes)
+	{
+		new Handle:voteMenu = NativeVotes_Create(Handler_NativeVoteCallback, NativeVotesType_Custom_YesNo, MenuAction:MENU_ACTIONS_ALL);
+		NativeVotes_SetTitle(voteMenu, "Voteban Player");
+		NativeVotes_DisplayToAll(voteMenu, 20);
+		NativeVotes_SetTarget(voteMenu, target);
+	}
+	else
+	{
+		new Handle:voteMenu = CreateMenu(Handler_VoteCallback, MenuAction:MENU_ACTIONS_ALL);
+		SetMenuTitle(voteMenu, "Voteban Player");
+		AddMenuItem(voteMenu, VOTE_YES, "Yes");
+		AddMenuItem(voteMenu, VOTE_NO, "No");
+		SetMenuExitButton(voteMenu, false);
+		VoteMenuToAll(voteMenu, 20);
+	}	
 }
 
 DisplayBanTargetMenu(client)
@@ -84,7 +94,7 @@ public AdminMenu_VoteBan(Handle:topmenu,
 	else if (action == TopMenuAction_DrawOption)
 	{	
 		/* disable this option if a vote is already running */
-		buffer[0] = !IsNewVoteAllowed() ? ITEMDRAW_IGNORE : ITEMDRAW_DEFAULT;
+		buffer[0] = Internal_IsNewVoteAllowed() ? ITEMDRAW_IGNORE : ITEMDRAW_DEFAULT;
 	}
 }
 
@@ -133,7 +143,7 @@ public Action:Command_Voteban(client, args)
 		return Plugin_Handled;	
 	}
 	
-	if (IsVoteInProgress())
+	if (Internal_IsVoteInProgress())
 	{
 		ReplyToCommand(client, "[SM] %t", "Vote in Progress");
 		return Plugin_Handled;

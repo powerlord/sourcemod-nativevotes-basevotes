@@ -41,7 +41,7 @@
 public Plugin:myinfo =
 {
 	name = "NativeVotes Basic Votes",
-	author = "Powerlord",
+	author = "Powerlord and AlliedModders LLC",
 	description = "NativeVotes Basic Vote Commands",
 	version = SOURCEMOD_VERSION,
 	url = "http://www.sourcemod.net/"
@@ -214,7 +214,7 @@ public Action:Command_Vote(client, args)
 		return Plugin_Handled;	
 	}
 	
-	if (IsVoteInProgress())
+	if (Internal_IsVoteInProgress())
 	{
 		ReplyToCommand(client, "[SM] %t", "Vote in Progress");
 		return Plugin_Handled;
@@ -265,8 +265,8 @@ public Action:Command_Vote(client, args)
 			}	
 		}
 		
+		//NativeVotes_SetInitiator(voteMenu, client);
 		NativeVotes_DisplayToAll(voteMenu, 20);
-		NativeVotes_SetInitiator(voteMenu, client);
 	}
 	else
 	{
@@ -379,9 +379,9 @@ public Handler_VoteCallback(Handle:menu, MenuAction:action, param1, param2)
 					{
 						if (strcmp(item, VOTE_NO) == 0 || strcmp(item, VOTE_YES) == 0)
 						{
-							for (new i = 0; i <= MaxClients; i++)
+							for (new i = 1; i <= MaxClients; i++)
 							{
-								if (IsClientInGame(i))
+								if (IsClientInGame(i) && !IsFakeClient(i))
 								{
 									Format(item, sizeof(item), "%T", display, i);
 									PrintToChat(i, "[SM] %t", "Vote End", g_voteArg, item);
@@ -528,16 +528,32 @@ public Handler_NativeVoteCallback(Handle:menu, MenuAction:action, param1, param2
 					{
 						if (nVoteType == NativeVotesType_Custom_YesNo)
 						{
-							Format(item, sizeof(display), "%T", LANG_SERVER, "Yes");
+							for (new i = 1; i <= MaxClients; i++)
+							{
+								if (IsClientInGame(i) && !IsFakeClient(i))
+								{
+									Format(item, sizeof(item), "%T", display, i);
+									PrintToChat(i, "[SM] %t", "Vote End", g_voteArg, item);
+									NativeVotes_DisplayPassCustomToOne(menu, i, "%t", "Vote End", g_voteArg, item);
+								}
+							}
 						}
-						
-						PrintToChatAll("[SM] %t", "Vote End", g_voteArg, item);
-						NativeVotes_DisplayPassCustom(menu, "%t", "Vote End", g_voteArg, item);
+						else
+						{
+							PrintToChatAll("[SM] %t", "Vote End", g_voteArg, item);
+							NativeVotes_DisplayPassCustom(menu, "%t", "Vote End", g_voteArg, item);
+						}
 					}
 					
 					case (voteType:map):
 					{
-						NativeVotes_DisplayPass(menu, item);
+						if (nVoteType == NativeVotesType_ChgLevel)
+						{
+							NativeVotes_GetDetails(menu, item, sizeof(item));
+						}
+						
+						//NativeVotes_DisplayPass(menu, item);
+						NativeVotes_DisplayPassEx(menu, NativeVotesPass_ChgLevel, item);
 						LogAction(-1, -1, "Changing map to %s due to vote.", item);
 						PrintToChatAll("[SM] %t", "Changing map", item);
 						new Handle:dp;
@@ -558,7 +574,7 @@ public Handler_NativeVoteCallback(Handle:menu, MenuAction:action, param1, param2
 							LogAction(-1, g_voteClient[VOTE_CLIENTID], "Vote kick successful, kicked \"%L\" (reason \"%s\")", g_voteClient[VOTE_CLIENTID], g_voteArg);
 							
 							KickClient(g_voteClient[VOTE_CLIENTID], "%s", g_voteArg);
-							NativeVotes_DisplayPass(menu);
+							NativeVotes_DisplayPass(menu, g_voteInfo[VOTE_NAME]);
 						}
 					}
 						
@@ -580,6 +596,8 @@ public Handler_NativeVoteCallback(Handle:menu, MenuAction:action, param1, param2
 							g_voteArg,
 							"Banned by vote",
 							"sm_voteban");
+							
+							NativeVotes_DisplayPassCustom(menu, "[SM] %t", "Banned player", g_voteInfo[VOTE_NAME], 30);
 						}
 					}
 				}
@@ -618,8 +636,8 @@ Float:GetVotePercent(votes, totalVotes)
 
 bool:TestVoteDelay(client)
 {
- 	new delay = CheckVoteDelay();
- 	
+ 	new delay = Internal_CheckVoteDelay();
+	
  	if (delay > 0)
  	{
  		if (delay > 60)
@@ -631,6 +649,11 @@ bool:TestVoteDelay(client)
  			ReplyToCommand(client, "[SM] %t", "Vote Delay Seconds", delay);
  		}
  		
+		if (g_NativeVotes)
+		{
+			NativeVotes_DisplayCallVoteFail(client, NativeVotesCallFail_Recent, delay);
+		}
+		
  		return false;
  	}
  	
@@ -647,4 +670,34 @@ public Action:Timer_ChangeMap(Handle:timer, Handle:dp)
 	ForceChangeLevel(mapname, "sm_votemap Result");
 	
 	return Plugin_Stop;
+}
+
+bool:Internal_IsVoteInProgress()
+{
+	if (g_NativeVotes)
+	{
+		return NativeVotes_IsVoteInProgress();
+	}
+	
+	return IsVoteInProgress();	
+}
+
+Internal_CheckVoteDelay()
+{
+	if (g_NativeVotes)
+	{
+		return NativeVotes_CheckVoteDelay();
+	}
+	
+	return CheckVoteDelay();	
+}
+
+bool:Internal_IsNewVoteAllowed()
+{
+	if (g_NativeVotes)
+	{
+		return NativeVotes_IsNewVoteAllowed();
+	}
+
+	return IsNewVoteAllowed();
 }
