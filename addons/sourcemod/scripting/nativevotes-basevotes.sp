@@ -86,6 +86,8 @@ new Handle:hTopMenu = INVALID_HANDLE;
 new bool:g_NativeVotes;
 #define LIBRARY "nativevotes"
 
+new g_Cvar_NativeVotesMenu = INVALID_HANDLE;
+
 #include "nativevotes-basevotes/votekick.sp"
 #include "nativevotes-basevotes/voteban.sp"
 #include "nativevotes-basevotes/votemap.sp"
