@@ -512,7 +512,7 @@ public Handler_NativeVoteCallback(Handle:menu, MenuAction:action, param1, param2
 			/* :TODO: g_voteClient[userid] needs to be checked */
 
 			// A multi-argument vote is "always successful", but have to check if its a Yes/No vote.
-			if (nVoteType == NativeVotesType_Custom_YesNo && (param1 == NATIVEVOTES_VOTE_YES && FloatCompare(percent,limit) < 0) || (param1 == NATIVEVOTES_VOTE_NO))
+			if (nVoteType == NativeVotesType_Custom_YesNo && ((param1 == NATIVEVOTES_VOTE_YES && FloatCompare(percent,limit) < 0) || (param1 == NATIVEVOTES_VOTE_NO)))
 			{
 				/* :TODO: g_voteClient[userid] should be used here and set to -1 if not applicable.
 				 */
