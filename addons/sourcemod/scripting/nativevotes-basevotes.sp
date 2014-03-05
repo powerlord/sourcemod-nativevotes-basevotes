@@ -2,9 +2,11 @@
  * vim: set ts=4 :
  * =============================================================================
  * NativeVotes Basic Votes Plugin
- * Implements basic vote commands using NativeVotes. Based on the SourceMod version.
+ * Implements basic vote commands using NativeVotes.
+ * Based on the SourceMod version.
  *
- * SourceMod (C)2014 Ross Bemrose (Powerlord).  All rights reserved.
+ * NativeVotes (C)2011-2014 Ross Bemrose (Powerlord).  All rights reserved.
+ * SourceMod (C)2004-2008 AlliedModders LLC.  All rights reserved.
  * =============================================================================
  *
  * This program is free software; you can redistribute it and/or modify it under
@@ -43,7 +45,7 @@ public Plugin:myinfo =
 	name = "NativeVotes Basic Votes",
 	author = "Powerlord and AlliedModders LLC",
 	description = "NativeVotes Basic Vote Commands",
-	version = SOURCEMOD_VERSION,
+	version = "1.5.2",
 	url = "http://www.sourcemod.net/"
 };
 
@@ -84,7 +86,6 @@ new Handle:hTopMenu = INVALID_HANDLE;
 
 // NativeVotes
 new bool:g_NativeVotes;
-#define LIBRARY "nativevotes"
 
 new g_Cvar_NativeVotesMenu = INVALID_HANDLE;
 
@@ -116,13 +117,6 @@ public OnPluginStart()
 	g_Cvar_Limits[1] = CreateConVar("sm_vote_kick", "0.60", "percent required for successful kick vote.", 0, true, 0.05, true, 1.0);	
 	g_Cvar_Limits[2] = CreateConVar("sm_vote_ban", "0.60", "percent required for successful ban vote.", 0, true, 0.05, true, 1.0);		
 	
-	/* Account for late loading */
-	new Handle:topmenu;
-	if (LibraryExists("adminmenu") && ((topmenu = GetAdminTopMenu()) != INVALID_HANDLE))
-	{
-		OnAdminMenuReady(topmenu);
-	}
-	
 	g_SelectedMaps = CreateArray(PLATFORM_MAX_PATH);
 	
 	g_MapList = CreateMenu(MenuHandler_Map, MenuAction_DrawItem|MenuAction_Display);
@@ -136,18 +130,30 @@ public OnPluginStart()
 
 public OnAllPluginsLoaded()
 {
-	g_NativeVotes = LibraryExists(LIBRARY) && NativeVotes_IsVoteTypeSupported(NativeVotesType_Custom_YesNo);
+	if (FindPluginByFile("basevotes.smx") != INVALID_HANDLE)
+	{
+		SetFailState("This plugin replaces basevotes.  You cannot run both at once.");
+	}
+	
+	/* Account for late loading */
+	new Handle:topmenu;
+	if (LibraryExists("adminmenu") && ((topmenu = GetAdminTopMenu()) != INVALID_HANDLE))
+	{
+		OnAdminMenuReady(topmenu);
+	}
+	
+	g_NativeVotes = LibraryExists("nativevotes") && NativeVotes_IsVoteTypeSupported(NativeVotesType_Custom_YesNo);
 }
 
 public OnLibraryAdded(const String:name[])
 {
 	new Handle:topmenu;
-	if (strcmp(name, "adminmenu") && ((topmenu = GetAdminTopMenu()) != INVALID_HANDLE))
+	if (StrEqual(name, "adminmenu") && ((topmenu = GetAdminTopMenu()) != INVALID_HANDLE))
 	{
 		OnAdminMenuReady(topmenu);
 	}
-	
-	if (StrEqual(name, LIBRARY, false) && NativeVotes_IsVoteTypeSupported(NativeVotesType_Custom_YesNo))
+	else
+	if (StrEqual(name, "nativevotes") && NativeVotes_IsVoteTypeSupported(NativeVotesType_Custom_YesNo))
 	{
 		g_NativeVotes = true;
 	}
@@ -155,7 +161,12 @@ public OnLibraryAdded(const String:name[])
 
 public OnLibraryRemoved(const String:name[])
 {
-	if (StrEqual(name, LIBRARY, false))
+	if (StrEqual(name, "adminmenu"))
+	{
+		hTopMenu = INVALID_HANDLE;
+	}
+	else
+	if (StrEqual(name, "nativevotes"))
 	{
 		g_NativeVotes = false;
 	}
@@ -462,7 +473,8 @@ public Handler_NativeVoteCallback(Handle:menu, MenuAction:action, param1, param2
 		
 		case MenuAction_Display:
 		{
-			if (g_voteType != voteType:question)
+			new NativeVotesType:nVoteType = NativeVotes_GetType(menu);
+			if (g_voteType != voteType:question && (nVoteType == NativeVotesType_Custom_YesNo || nVoteType == NativeVotesType_Custom_Mult))
 			{
 				decl String:title[64];
 				NativeVotes_GetTitle(menu, title, sizeof(title));
@@ -497,7 +509,7 @@ public Handler_NativeVoteCallback(Handle:menu, MenuAction:action, param1, param2
 			NativeVotes_GetInfo(param2, votes, totalVotes);
 			NativeVotes_GetItem(menu, param1, item, sizeof(item), display, sizeof(display));
 			
-			if (nVoteType == NativeVotesType_Custom_YesNo)
+			if (nVoteType == NativeVotesType_Custom_YesNo && param1 == NATIVEVOTES_VOTE_NO)
 			{
 				votes = totalVotes - votes; // Reverse the votes to be in relation to the Yes option.
 			}

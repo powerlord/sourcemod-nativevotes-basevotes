@@ -1,8 +1,8 @@
-/**
+ /**
  * vim: set ts=4 :
  * =============================================================================
- * NativeVotes Basic Votes Plugin
- * Provides ban functionality
+ * NativeVotes Fun Votes Plugin
+ * Provides voteslay functionality
  *
  * NativeVotes (C)2011-2014 Ross Bemrose (Powerlord).  All rights reserved.
  * SourceMod (C)2004-2008 AlliedModders LLC.  All rights reserved.
@@ -32,52 +32,54 @@
  * Version: $Id$
  */
 
-DisplayVoteBanMenu(client, target)
+DisplayVoteSlayMenu(client, target, String:name[])
 {
+	if (!IsPlayerAlive(target))
+	{
+		ReplyToCommand(client, "[SM] %t", "Cannot be performed on dead", name);
+		return;
+	}
+	
 	g_voteClient[VOTE_CLIENTID] = target;
-	g_voteClient[VOTE_USERID] = GetClientUserId(target);
-
 	GetClientName(target, g_voteInfo[VOTE_NAME], sizeof(g_voteInfo[]));
-	GetClientIP(target, g_voteInfo[VOTE_IP], sizeof(g_voteInfo[]));
 
-	LogAction(client, target, "\"%L\" initiated a ban vote against \"%L\"", client, target);
-	ShowActivity2(client, "[SM] ", "%t", "Initiated Vote Ban", g_voteInfo[VOTE_NAME]);
-
-	g_voteType = voteType:ban;
+	LogAction(client, target, "\"%L\" initiated a slay vote against \"%L\"", client, target);
+	ShowActivity2(client, "[SM] ", "%t", "Initiated Vote Slay", g_voteInfo[VOTE_NAME]);
+	
+	g_voteType = voteType:slay;
 	
 	if (g_NativeVotes)
 	{
-		new Handle:voteMenu = NativeVotes_Create(Handler_NativeVoteCallback, NativeVotesType_Custom_YesNo, MenuAction:MENU_ACTIONS_ALL);
-		NativeVotes_SetTitle(voteMenu, "Voteban Player");
-		NativeVotes_DisplayToAll(voteMenu, 20);
-		NativeVotes_SetTarget(voteMenu, target);
+		new Handle:hVoteMenu = NativeVotes_Create(Handler_NativeVoteCallback, NativeVotesType_Custom_YesNo, MenuAction:MENU_ACTIONS_ALL);
+		NativeVotes_SetTitle(hVoteMenu, "Voteslay Player");
+		NativeVotes_DisplayToAll(hVoteMenu, 20);
 	}
 	else
 	{
-		new Handle:voteMenu = CreateMenu(Handler_VoteCallback, MenuAction:MENU_ACTIONS_ALL);
-		SetMenuTitle(voteMenu, "Voteban Player");
-		AddMenuItem(voteMenu, VOTE_YES, "Yes");
-		AddMenuItem(voteMenu, VOTE_NO, "No");
-		SetMenuExitButton(voteMenu, false);
-		VoteMenuToAll(voteMenu, 20);
-	}	
+		new Handle:hVoteMenu = CreateMenu(Handler_VoteCallback, MenuAction:MENU_ACTIONS_ALL);
+		SetMenuTitle(hVoteMenu, "Voteslay Player");
+		AddMenuItem(hVoteMenu, VOTE_YES, "Yes");
+		AddMenuItem(hVoteMenu, VOTE_NO, "No");
+		SetMenuExitButton(hVoteMenu, false);
+		VoteMenuToAll(hVoteMenu, 20);
+	}
 }
 
-DisplayBanTargetMenu(client)
+DisplaySlayTargetMenu(client)
 {
-	new Handle:menu = CreateMenu(MenuHandler_Ban);
+	new Handle:menu = CreateMenu(MenuHandler_Slay);
 	
 	decl String:title[100];
-	Format(title, sizeof(title), "%T:", "Ban vote", client);
+	Format(title, sizeof(title), "%T:", "Slay vote", client);
 	SetMenuTitle(menu, title);
 	SetMenuExitBackButton(menu, true);
 	
-	AddTargetsToMenu(menu, client, false, false);
+	AddTargetsToMenu(menu, client, true, true);
 	
 	DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
 
-public AdminMenu_VoteBan(Handle:topmenu, 
+public AdminMenu_VoteSlay(Handle:topmenu, 
 							  TopMenuAction:action,
 							  TopMenuObject:object_id,
 							  param,
@@ -86,20 +88,20 @@ public AdminMenu_VoteBan(Handle:topmenu,
 {
 	if (action == TopMenuAction_DisplayOption)
 	{
-		Format(buffer, maxlength, "%T", "Ban vote", param);
+		Format(buffer, maxlength, "%T", "Slay vote", param);
 	}
 	else if (action == TopMenuAction_SelectOption)
 	{
-		DisplayBanTargetMenu(param);
+		DisplaySlayTargetMenu(param);
 	}
 	else if (action == TopMenuAction_DrawOption)
 	{	
 		/* disable this option if a vote is already running */
-		buffer[0] = Internal_IsNewVoteAllowed() ? ITEMDRAW_IGNORE : ITEMDRAW_DEFAULT;
+		buffer[0] = !Internal_IsNewVoteAllowed() ? ITEMDRAW_IGNORE : ITEMDRAW_DEFAULT;
 	}
 }
 
-public MenuHandler_Ban(Handle:menu, MenuAction:action, param1, param2)
+public MenuHandler_Slay(Handle:menu, MenuAction:action, param1, param2)
 {
 	if (action == MenuAction_End)
 	{
@@ -128,19 +130,22 @@ public MenuHandler_Ban(Handle:menu, MenuAction:action, param1, param2)
 		{
 			PrintToChat(param1, "[SM] %t", "Unable to target");
 		}
+		else if (!IsPlayerAlive(target))
+		{
+			PrintToChat(param1, "[SM] %t", "Player has since died");
+		}
 		else
 		{
-			g_voteArg[0] = '\0';
-			DisplayVoteBanMenu(param1, target);
+			DisplayVoteSlayMenu(param1, target, name);
 		}
 	}
 }
 
-public Action:Command_Voteban(client, args)
+public Action:Command_VoteSlay(client, args)
 {
 	if (args < 1)
 	{
-		ReplyToCommand(client, "[SM] Usage: sm_voteban <player> [reason]");
+		ReplyToCommand(client, "[SM] Usage: sm_voteslay <player>");
 		return Plugin_Handled;	
 	}
 	
@@ -158,16 +163,7 @@ public Action:Command_Voteban(client, args)
 	decl String:text[256], String:arg[64];
 	GetCmdArgString(text, sizeof(text));
 	
-	new len = BreakString(text, arg, sizeof(arg));
-	
-	if (len != -1)
-	{
-		strcopy(g_voteArg, sizeof(g_voteArg), text[len]);
-	}
-	else
-	{
-		g_voteArg[0] = '\0';
-	}
+	BreakString(text, arg, sizeof(arg));
 	
 	decl String:target_name[MAX_TARGET_LENGTH];
 	decl target_list[MAXPLAYERS], target_count, bool:tn_is_ml;
@@ -177,7 +173,7 @@ public Action:Command_Voteban(client, args)
 			client,
 			target_list,
 			MAXPLAYERS,
-			COMMAND_FILTER_NO_MULTI|COMMAND_FILTER_NO_BOTS,
+			COMMAND_FILTER_NO_MULTI,
 			target_name,
 			sizeof(target_name),
 			tn_is_ml)) <= 0)
@@ -186,7 +182,7 @@ public Action:Command_Voteban(client, args)
 		return Plugin_Handled;
 	}
 
-	DisplayVoteBanMenu(client, target_list[0]);
+	DisplayVoteSlayMenu(client, target_list[0], arg);
 	
 	return Plugin_Handled;
 }

@@ -1,9 +1,10 @@
 /**
  * vim: set ts=4 :
  * =============================================================================
- * SourceMod Basevotes Plugin
+ * NativeVotes Basic Votes Plugin
  * Provides map functionality
  *
+ * NativeVotes (C)2011-2014 Ross Bemrose (Powerlord).  All rights reserved.
  * SourceMod (C)2004-2008 AlliedModders LLC.  All rights reserved.
  * =============================================================================
  *
@@ -44,7 +45,7 @@ DisplayVoteMapMenu(client, mapCount, String:maps[5][])
 	
 	g_voteType = voteType:map;
 	
-	if (g_NativeVotes)
+	if (g_NativeVotes && (mapCount == 1 || NativeVotes_IsVoteTypeSupported(NativeVotesType_NextLevelMult)) )
 	{
 		new Handle:voteMenu;
 		

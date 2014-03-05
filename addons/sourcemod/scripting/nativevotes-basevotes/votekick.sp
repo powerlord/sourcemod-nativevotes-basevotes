@@ -1,9 +1,10 @@
 /**
  * vim: set ts=4 :
  * =============================================================================
- * SourceMod Basevotes Plugin
+ * NativeVotes Basic Votes Plugin
  * Provides kick functionality
  *
+ * NativeVotes (C)2011-2014 Ross Bemrose (Powerlord).  All rights reserved.
  * SourceMod (C)2004-2008 AlliedModders LLC.  All rights reserved.
  * =============================================================================
  *
@@ -30,7 +31,6 @@
  *
  * Version: $Id$
  */
-
 
 DisplayVoteKickMenu(client, target)
 {
