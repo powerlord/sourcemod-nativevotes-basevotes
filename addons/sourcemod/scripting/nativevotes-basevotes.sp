@@ -40,13 +40,15 @@
 #include <adminmenu>
 #include <nativevotes>
 
+#define VERSION "1.5.2"
+
 public Plugin:myinfo =
 {
 	name = "NativeVotes Basic Votes",
 	author = "Powerlord and AlliedModders LLC",
 	description = "NativeVotes Basic Vote Commands",
-	version = "1.5.2",
-	url = "http://www.sourcemod.net/"
+	version = VERSION,
+	url = ""
 };
 
 #define VOTE_NO "###no###"
@@ -87,7 +89,7 @@ new Handle:hTopMenu = INVALID_HANDLE;
 // NativeVotes
 new bool:g_NativeVotes;
 
-new g_Cvar_NativeVotesMenu = INVALID_HANDLE;
+//new g_Cvar_NativeVotesMenu = INVALID_HANDLE;
 
 #include "nativevotes-basevotes/votekick.sp"
 #include "nativevotes-basevotes/voteban.sp"
@@ -114,8 +116,9 @@ public OnPluginStart()
 	*/
 
 	g_Cvar_Limits[0] = CreateConVar("sm_vote_map", "0.60", "percent required for successful map vote.", 0, true, 0.05, true, 1.0);
-	g_Cvar_Limits[1] = CreateConVar("sm_vote_kick", "0.60", "percent required for successful kick vote.", 0, true, 0.05, true, 1.0);	
-	g_Cvar_Limits[2] = CreateConVar("sm_vote_ban", "0.60", "percent required for successful ban vote.", 0, true, 0.05, true, 1.0);		
+	g_Cvar_Limits[1] = CreateConVar("sm_vote_kick", "0.60", "percent required for successful kick vote.", 0, true, 0.05, true, 1.0);
+	g_Cvar_Limits[2] = CreateConVar("sm_vote_ban", "0.60", "percent required for successful ban vote.", 0, true, 0.05, true, 1.0);
+	CreateConVar("nativevotes_basevotes_version", VERSION, "NativeVotes Basic Votes version", FCVAR_PLUGIN|FCVAR_NOTIFY|FCVAR_DONTRECORD|FCVAR_SPONLY);
 	
 	g_SelectedMaps = CreateArray(PLATFORM_MAX_PATH);
 	
