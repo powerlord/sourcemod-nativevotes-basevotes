@@ -42,7 +42,7 @@
 #include <adminmenu>
 #include <nativevotes>
 
-#define VERSION "1.5.2"
+#define VERSION "1.5.3"
 
 public Plugin:myinfo =
 {
@@ -384,7 +384,7 @@ public Handler_NativeVoteCallback(Handle:menu, MenuAction:action, param1, param2
 				decl String:buffer[255];
 				Format(buffer, sizeof(buffer), "%T", title, param1, g_voteInfo[VOTE_NAME]);
 				
-				NativeVotes_RedrawVoteTitle(buffer);
+				return _:NativeVotes_RedrawVoteTitle(buffer);
 			}
 		}
 		
@@ -423,7 +423,7 @@ public Handler_NativeVoteCallback(Handle:menu, MenuAction:action, param1, param2
 			/* :TODO: g_voteClient[userid] needs to be checked */
 
 			// A multi-argument vote is "always successful", but have to check if its a Yes/No vote.
-			if (nVoteType == NativeVotesType_Custom_YesNo && ((param1 == NATIVEVOTES_VOTE_YES && FloatCompare(percent,limit) < 0) || (param1 == NATIVEVOTES_VOTE_NO)))
+			if ((nVoteType != NativeVotesType_NextLevelMult && nVoteType != NativeVotesType_Custom_Mult) && ((param1 == NATIVEVOTES_VOTE_YES && FloatCompare(percent,limit) < 0) || (param1 == NATIVEVOTES_VOTE_NO)))
 			{
 				/* :TODO: g_voteClient[userid] should be used here and set to -1 if not applicable.
 				 */

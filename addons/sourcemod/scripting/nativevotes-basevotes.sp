@@ -40,7 +40,7 @@
 #include <adminmenu>
 #include <nativevotes>
 
-#define VERSION "1.5.2"
+#define VERSION "1.5.3"
 
 public Plugin:myinfo =
 {
@@ -485,7 +485,7 @@ public Handler_NativeVoteCallback(Handle:menu, MenuAction:action, param1, param2
 				decl String:buffer[255];
 				Format(buffer, sizeof(buffer), "%T", title, param1, g_voteInfo[VOTE_NAME]);
 
-				NativeVotes_RedrawVoteTitle(buffer);
+				return _:NativeVotes_RedrawVoteTitle(buffer);
 			}
 		}
 		
