@@ -63,7 +63,7 @@ DisplayVoteFFMenu(client)
 		{
 			NativeVotes_SetTitle(hVoteMenu, "Voteff On");
 		}
-		
+		NativeVotes_DisplayToAll(hVoteMenu, 20);		
 	}
 	else
 	{
