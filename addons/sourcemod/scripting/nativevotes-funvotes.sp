@@ -42,7 +42,7 @@
 #include <adminmenu>
 #include <nativevotes>
 
-#define VERSION "1.5.3"
+#define VERSION "1.5.4"
 
 public Plugin:myinfo =
 {
@@ -50,7 +50,7 @@ public Plugin:myinfo =
 	author = "Powerlord and AlliedModders LLC",
 	description = "NativeVotes Fun Vote Commands",
 	version = VERSION,
-	url = ""
+	url = "https://forums.alliedmods.net/showthread.php?t=236485"
 };
 
 #define VOTE_NO "###no###"
@@ -143,7 +143,9 @@ public OnAllPluginsLoaded()
 	
 	if (FindPluginByFile("funvotes.smx") != INVALID_HANDLE)
 	{
-		SetFailState("This plugin replaces funvotes.  You cannot run both at once.");
+		LogMessage("Unloading funvotes to prevent conflicts...");
+		ServerCommand("sm plugins unload funvotes");
+		//SetFailState("This plugin replaces funvotes.  You cannot run both at once.");
 	}
 	
 	/* Account for late loading */

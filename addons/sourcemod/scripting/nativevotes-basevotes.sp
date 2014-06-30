@@ -40,7 +40,7 @@
 #include <adminmenu>
 #include <nativevotes>
 
-#define VERSION "1.5.3"
+#define VERSION "1.5.4"
 
 public Plugin:myinfo =
 {
@@ -48,7 +48,7 @@ public Plugin:myinfo =
 	author = "Powerlord and AlliedModders LLC",
 	description = "NativeVotes Basic Vote Commands",
 	version = VERSION,
-	url = ""
+	url = "https://forums.alliedmods.net/showthread.php?t=236483"
 };
 
 #define VOTE_NO "###no###"
@@ -135,7 +135,9 @@ public OnAllPluginsLoaded()
 {
 	if (FindPluginByFile("basevotes.smx") != INVALID_HANDLE)
 	{
-		SetFailState("This plugin replaces basevotes.  You cannot run both at once.");
+		LogMessage("Unloading basevotes to prevent conflicts...");
+		ServerCommand("sm plugins unload basevotes");
+		//SetFailState("This plugin replaces basevotes.  You cannot run both at once.");
 	}
 	
 	/* Account for late loading */
