@@ -1,4 +1,6 @@
-sourcemod-nativevotes-basevotes
+NativeVotes BaseVotes and FunVotes
 ===============================
 
-Base Votes ported to NativeVotes API
+![NativeVotes BaseVotes Build Status](https://travis-ci.org/powerlord/sourcemod-nativevotes-basevotes.svg?branch=master)
+
+Base Votes and Fun Votes ported to the NativeVotes API
