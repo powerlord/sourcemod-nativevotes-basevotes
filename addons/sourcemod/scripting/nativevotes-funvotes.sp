@@ -145,7 +145,20 @@ public OnAllPluginsLoaded()
 	{
 		LogMessage("Unloading funvotes to prevent conflicts...");
 		ServerCommand("sm plugins unload funvotes");
+
+		decl String:oldPath[PLATFORM_MAX_PATH];
+		decl String:newPath[PLATFORM_MAX_PATH];
+
+		BuildPath(Path_SM, oldPath, sizeof(oldPath), "plugins/funvotes.smx");
+		BuildPath(Path_SM, newPath, sizeof(newPath), "plugins/disabled/funvotes.smx");
+		if (RenameFile(newPath, oldPath))
+		{
+			LogMessage("Moving funvotes to disabled.");
+		}
+		
+		
 		//SetFailState("This plugin replaces funvotes.  You cannot run both at once.");
+		
 	}
 	
 	/* Account for late loading */

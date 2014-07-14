@@ -135,8 +135,20 @@ public OnAllPluginsLoaded()
 {
 	if (FindPluginByFile("basevotes.smx") != INVALID_HANDLE)
 	{
+
 		LogMessage("Unloading basevotes to prevent conflicts...");
 		ServerCommand("sm plugins unload basevotes");
+		
+		decl String:oldPath[PLATFORM_MAX_PATH];
+		decl String:newPath[PLATFORM_MAX_PATH];
+		
+		BuildPath(Path_SM, oldPath, sizeof(oldPath), "plugins/basevotes.smx");
+		BuildPath(Path_SM, newPath, sizeof(newPath), "plugins/disabled/basevotes.smx");
+		if (RenameFile(newPath, oldPath))
+		{
+			LogMessage("Moving basevotes to disabled.");
+		}
+		
 		//SetFailState("This plugin replaces basevotes.  You cannot run both at once.");
 	}
 	
