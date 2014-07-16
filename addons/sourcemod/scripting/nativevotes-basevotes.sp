@@ -40,7 +40,7 @@
 #include <adminmenu>
 #include <nativevotes>
 
-#define VERSION "1.5.4"
+#define VERSION "1.5.5"
 
 public Plugin:myinfo =
 {
