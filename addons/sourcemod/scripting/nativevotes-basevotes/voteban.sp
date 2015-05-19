@@ -4,8 +4,8 @@
  * NativeVotes Basic Votes Plugin
  * Provides ban functionality
  *
- * NativeVotes (C)2011-2014 Ross Bemrose (Powerlord).  All rights reserved.
- * SourceMod (C)2004-2008 AlliedModders LLC.  All rights reserved.
+ * NativeVotes (C)2011-2015 Ross Bemrose (Powerlord).  All rights reserved.
+ * SourceMod (C)2004-2015 AlliedModders LLC.  All rights reserved.
  * =============================================================================
  *
  * This program is free software; you can redistribute it and/or modify it under
@@ -32,7 +32,7 @@
  * Version: $Id$
  */
 
-DisplayVoteBanMenu(client, target)
+void DisplayVoteBanMenu(int client, int target)
 {
 	g_voteClient[VOTE_CLIENTID] = target;
 	g_voteClient[VOTE_USERID] = GetClientUserId(target);
@@ -43,46 +43,46 @@ DisplayVoteBanMenu(client, target)
 	LogAction(client, target, "\"%L\" initiated a ban vote against \"%L\"", client, target);
 	ShowActivity2(client, "[SM] ", "%t", "Initiated Vote Ban", g_voteInfo[VOTE_NAME]);
 
-	g_voteType = voteType:ban;
+	g_voteType = ban;
 	
 	if (g_NativeVotes)
 	{
-		new Handle:voteMenu = NativeVotes_Create(Handler_NativeVoteCallback, NativeVotesType_Custom_YesNo, MenuAction:MENU_ACTIONS_ALL);
-		NativeVotes_SetTitle(voteMenu, "Voteban Player");
-		NativeVotes_DisplayToAll(voteMenu, 20);
-		NativeVotes_SetTarget(voteMenu, target);
+		NativeVote voteMenu = new NativeVote(Handler_NativeVoteCallback, NativeVotesType_Custom_YesNo, MENU_ACTIONS_ALL);
+		voteMenu.SetTitle("Voteban Player");
+		voteMenu.SetTarget(target);
+		voteMenu.DisplayVoteToAll(20);
 	}
 	else
 	{
-		new Handle:voteMenu = CreateMenu(Handler_VoteCallback, MenuAction:MENU_ACTIONS_ALL);
-		SetMenuTitle(voteMenu, "Voteban Player");
-		AddMenuItem(voteMenu, VOTE_YES, "Yes");
-		AddMenuItem(voteMenu, VOTE_NO, "No");
-		SetMenuExitButton(voteMenu, false);
-		VoteMenuToAll(voteMenu, 20);
+		Menu voteMenu = new Menu(Handler_VoteCallback, MENU_ACTIONS_ALL);
+		voteMenu.SetTitle("Voteban Player");
+		voteMenu.AddItem(VOTE_YES, "Yes");
+		voteMenu.AddItem(VOTE_NO, "No");
+		voteMenu.ExitButton = false;
+		voteMenu.DisplayVoteToAll(20);
 	}	
 }
 
-DisplayBanTargetMenu(client)
+void DisplayBanTargetMenu(int client)
 {
-	new Handle:menu = CreateMenu(MenuHandler_Ban);
+	Menu menu = new Menu(MenuHandler_Ban);
 	
-	decl String:title[100];
+	char title[100];
 	Format(title, sizeof(title), "%T:", "Ban vote", client);
-	SetMenuTitle(menu, title);
-	SetMenuExitBackButton(menu, true);
+	menu.SetTitle(title);
+	menu.ExitBackButton = true;
 	
 	AddTargetsToMenu(menu, client, false, false);
 	
-	DisplayMenu(menu, client, MENU_TIME_FOREVER);
+	menu.Display(client, MENU_TIME_FOREVER);
 }
 
-public AdminMenu_VoteBan(Handle:topmenu, 
-							  TopMenuAction:action,
-							  TopMenuObject:object_id,
-							  param,
-							  String:buffer[],
-							  maxlength)
+public void AdminMenu_VoteBan(Handle topmenu, 
+							  TopMenuAction action,
+							  TopMenuObject object_id,
+							  int param,
+							  char[] buffer,
+							  int maxlength)
 {
 	if (action == TopMenuAction_DisplayOption)
 	{
@@ -99,44 +99,49 @@ public AdminMenu_VoteBan(Handle:topmenu,
 	}
 }
 
-public MenuHandler_Ban(Handle:menu, MenuAction:action, param1, param2)
+public int MenuHandler_Ban(Menu menu, MenuAction action, int param1, int param2)
 {
-	if (action == MenuAction_End)
+	switch (action)
 	{
-		CloseHandle(menu);
-	}
-	else if (action == MenuAction_Cancel)
-	{
-		if (param2 == MenuCancel_ExitBack && hTopMenu != INVALID_HANDLE)
+		case MenuAction_End:
 		{
-			DisplayTopMenu(hTopMenu, param1, TopMenuPosition_LastCategory);
+			delete menu;
 		}
-	}
-	else if (action == MenuAction_Select)
-	{
-		decl String:info[32], String:name[32];
-		new userid, target;
 		
-		GetMenuItem(menu, param2, info, sizeof(info), _, name, sizeof(name));
-		userid = StringToInt(info);
+		case MenuAction_Cancel:
+		{
+			if (param2 == MenuCancel_ExitBack && hTopMenu != INVALID_HANDLE)
+			{
+				hTopMenu.Display(param1, TopMenuPosition_LastCategory);
+			}
+		}
+		
+		case MenuAction_Select:
+		{
+			char info[32], name[32];
+			int userid, target;
+			
+			menu.GetItem(param2, info, sizeof(info), _, name, sizeof(name));
+			userid = StringToInt(info);
 
-		if ((target = GetClientOfUserId(userid)) == 0)
-		{
-			PrintToChat(param1, "[SM] %t", "Player no longer available");
-		}
-		else if (!CanUserTarget(param1, target))
-		{
-			PrintToChat(param1, "[SM] %t", "Unable to target");
-		}
-		else
-		{
-			g_voteArg[0] = '\0';
-			DisplayVoteBanMenu(param1, target);
+			if ((target = GetClientOfUserId(userid)) == 0)
+			{
+				PrintToChat(param1, "[SM] %t", "Player no longer available");
+			}
+			else if (!CanUserTarget(param1, target))
+			{
+				PrintToChat(param1, "[SM] %t", "Unable to target");
+			}
+			else
+			{
+				g_voteArg[0] = '\0';
+				DisplayVoteBanMenu(param1, target);
+			}
 		}
 	}
 }
 
-public Action:Command_Voteban(client, args)
+public Action Command_Voteban(int client, int args)
 {
 	if (args < 1)
 	{
@@ -155,10 +160,10 @@ public Action:Command_Voteban(client, args)
 		return Plugin_Handled;
 	}
 	
-	decl String:text[256], String:arg[64];
+	char text[256], arg[64];
 	GetCmdArgString(text, sizeof(text));
 	
-	new len = BreakString(text, arg, sizeof(arg));
+	int len = BreakString(text, arg, sizeof(arg));
 	
 	if (len != -1)
 	{
@@ -169,14 +174,16 @@ public Action:Command_Voteban(client, args)
 		g_voteArg[0] = '\0';
 	}
 	
-	decl String:target_name[MAX_TARGET_LENGTH];
-	decl target_list[MAXPLAYERS], target_count, bool:tn_is_ml;
+	char target_name[MAX_TARGET_LENGTH];
+	int[] target_list = new int[MaxClients];
+	int target_count;
+	bool tn_is_ml;
 	
 	if ((target_count = ProcessTargetString(
 			arg,
 			client,
 			target_list,
-			MAXPLAYERS,
+			MaxClients,
 			COMMAND_FILTER_NO_MULTI|COMMAND_FILTER_NO_BOTS,
 			target_name,
 			sizeof(target_name),
