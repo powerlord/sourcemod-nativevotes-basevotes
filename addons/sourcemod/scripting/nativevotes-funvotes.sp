@@ -42,9 +42,11 @@
 #include <adminmenu>
 #include <nativevotes>
 
-#define VERSION "1.5.5"
+#pragma newdecls required
 
-public Plugin:myinfo =
+#define VERSION "1.7.0"
+
+public Plugin myinfo =
 {
 	name = "NativeVotes Fun Votes",
 	author = "Powerlord and AlliedModders LLC",
@@ -58,10 +60,10 @@ public Plugin:myinfo =
 
 //new Handle:g_hVoteMenu = INVALID_HANDLE;
 
-new Handle:g_Cvar_Limits[5] = {INVALID_HANDLE, ...};
-new Handle:g_Cvar_Gravity = INVALID_HANDLE;
-new Handle:g_Cvar_Alltalk = INVALID_HANDLE;
-new Handle:g_Cvar_FF = INVALID_HANDLE;
+ConVar g_Cvar_Limits[5] = {null, ...};
+ConVar g_Cvar_Gravity;
+ConVar g_Cvar_Alltalk;
+ConVar g_Cvar_FF;
 
 // new Handle:g_Cvar_Show = INVALID_HANDLE;
 
@@ -74,24 +76,24 @@ enum voteType
 	ff
 };
 
-new voteType:g_voteType = voteType:gravity;
+voteType g_voteType = gravity;
 
 // Menu API does not provide us with a way to pass multiple peices of data with a single
 // choice, so some globals are used to hold stuff.
 //
 #define VOTE_CLIENTID	0
 #define VOTE_USERID	1
-new g_voteClient[2];		/* Holds the target's client id and user id */
+int g_voteClient[2];		/* Holds the target's client id and user id */
 
 #define VOTE_NAME	0
 #define VOTE_AUTHID	1
 #define	VOTE_IP		2
-new String:g_voteInfo[3][65];	/* Holds the target's name, authid, and IP */
+char g_voteInfo[3][65];	/* Holds the target's name, authid, and IP */
 
-new Handle:hTopMenu = INVALID_HANDLE;
+TopMenu hTopMenu;
 
 // NativeVotes
-new bool:g_NativeVotes;
+bool g_NativeVotes;
 
 //new g_Cvar_NativeVotesMenu = INVALID_HANDLE;
 
@@ -101,7 +103,7 @@ new bool:g_NativeVotes;
 #include "nativevotes-funvotes/votealltalk.sp"
 #include "nativevotes-funvotes/voteff.sp"
 
-public OnPluginStart()
+public void OnPluginStart()
 {
 	LoadTranslations("common.phrases");
 	LoadTranslations("basevotes.phrases");
@@ -134,20 +136,20 @@ public OnPluginStart()
 	*/
 }
 
-public OnAllPluginsLoaded()
+public void OnAllPluginsLoaded()
 {
-	if (FindPluginByFile("basefunvotes.smx") != INVALID_HANDLE)
+	if (FindPluginByFile("basefunvotes.smx") != null)
 	{
 		SetFailState("This plugin replaces basefuncommands.  You cannot run both at once.");
 	}
 	
-	if (FindPluginByFile("funvotes.smx") != INVALID_HANDLE)
+	if (FindPluginByFile("funvotes.smx") != null)
 	{
 		LogMessage("Unloading funvotes to prevent conflicts...");
 		ServerCommand("sm plugins unload funvotes");
 
-		decl String:oldPath[PLATFORM_MAX_PATH];
-		decl String:newPath[PLATFORM_MAX_PATH];
+		char oldPath[PLATFORM_MAX_PATH];
+		char newPath[PLATFORM_MAX_PATH];
 
 		BuildPath(Path_SM, oldPath, sizeof(oldPath), "plugins/funvotes.smx");
 		BuildPath(Path_SM, newPath, sizeof(newPath), "plugins/disabled/funvotes.smx");
@@ -162,8 +164,8 @@ public OnAllPluginsLoaded()
 	}
 	
 	/* Account for late loading */
-	new Handle:topmenu;
-	if (LibraryExists("adminmenu") && ((topmenu = GetAdminTopMenu()) != INVALID_HANDLE))
+	TopMenu topmenu;
+	if (LibraryExists("adminmenu") && ((topmenu = GetAdminTopMenu()) != null))
 	{
 		OnAdminMenuReady(topmenu);
 	}
@@ -171,10 +173,10 @@ public OnAllPluginsLoaded()
 	g_NativeVotes = LibraryExists("nativevotes") && NativeVotes_IsVoteTypeSupported(NativeVotesType_Custom_YesNo);
 }
 
-public OnLibraryAdded(const String:name[])
+public void OnLibraryAdded(const char[] name)
 {
-	new Handle:topmenu;
-	if (StrEqual(name, "adminmenu") && ((topmenu = GetAdminTopMenu()) != INVALID_HANDLE))
+	TopMenu topmenu;
+	if (StrEqual(name, "adminmenu") && ((topmenu = GetAdminTopMenu()) != null))
 	{
 		OnAdminMenuReady(topmenu);
 	}
@@ -185,11 +187,11 @@ public OnLibraryAdded(const String:name[])
 	}
 }
 
-public OnLibraryRemoved(const String:name[])
+public void OnLibraryRemoved(const char[] name)
 {
 	if (StrEqual(name, "adminmenu"))
 	{
-		hTopMenu = INVALID_HANDLE;
+		hTopMenu = null;
 	}
 	else
 	if (StrEqual(name, "nativevotes"))
@@ -198,8 +200,10 @@ public OnLibraryRemoved(const String:name[])
 	}
 }
 
-public OnAdminMenuReady(Handle:topmenu)
+public void OnAdminMenuReady(Handle aTopMenu)
 {
+	TopMenu topmenu = TopMenu.FromHandle(aTopMenu);
+	
 	/* Block us from being called twice */
 	if (topmenu == hTopMenu)
 	{
@@ -210,82 +214,48 @@ public OnAdminMenuReady(Handle:topmenu)
 	hTopMenu = topmenu;
 	
 	/* Build the "Voting Commands" category */
-	new TopMenuObject:voting_commands = FindTopMenuCategory(hTopMenu, ADMINMENU_VOTINGCOMMANDS);
+	TopMenuObject voting_commands = FindTopMenuCategory(hTopMenu, ADMINMENU_VOTINGCOMMANDS);
 
 	if (voting_commands != INVALID_TOPMENUOBJECT)
 	{
-		AddToTopMenu(hTopMenu,
-			"sm_votegravity",
-			TopMenuObject_Item,
-			AdminMenu_VoteGravity,
-			voting_commands,
-			"sm_votegravity",
-			ADMFLAG_VOTE);
-			
-		AddToTopMenu(hTopMenu,
-			"sm_voteburn",
-			TopMenuObject_Item,
-			AdminMenu_VoteBurn,
-			voting_commands,
-			"sm_voteburn",
-			ADMFLAG_VOTE|ADMFLAG_SLAY);
-			
-		AddToTopMenu(hTopMenu,
-			"sm_voteslay",
-			TopMenuObject_Item,
-			AdminMenu_VoteSlay,
-			voting_commands,
-			"sm_voteslay",
-			ADMFLAG_VOTE|ADMFLAG_SLAY);
-			
-		AddToTopMenu(hTopMenu,
-			"sm_votealltalk",
-			TopMenuObject_Item,
-			AdminMenu_VoteAllTalk,
-			voting_commands,
-			"sm_votealltalk",
-			ADMFLAG_VOTE);
-			
-		AddToTopMenu(hTopMenu,
-			"sm_voteff",
-			TopMenuObject_Item,
-			AdminMenu_VoteFF,
-			voting_commands,
-			"sm_voteff",
-			ADMFLAG_VOTE);
+		hTopMenu.AddItem("sm_votegravity", AdminMenu_VoteGravity, voting_commands, "sm_votegravity", ADMFLAG_VOTE);
+		hTopMenu.AddItem("sm_voteburn", AdminMenu_VoteBurn, voting_commands, "sm_voteburn", ADMFLAG_VOTE|ADMFLAG_SLAY);
+		hTopMenu.AddItem("sm_voteslay", AdminMenu_VoteSlay, voting_commands, "sm_voteslay", ADMFLAG_VOTE|ADMFLAG_SLAY);
+		hTopMenu.AddItem("sm_votealltalk", AdminMenu_VoteAllTalk, voting_commands, "sm_votealltalk", ADMFLAG_VOTE);
+		hTopMenu.AddItem("sm_voteff", AdminMenu_VoteFF, voting_commands, "sm_voteff", ADMFLAG_VOTE);
 	}
 }
 
-public Handler_VoteCallback(Handle:menu, MenuAction:action, param1, param2)
+public int Handler_VoteCallback(Menu menu, MenuAction action, int param1, int param2)
 {
 	switch (action)
 	{
 		case MenuAction_End:
 		{
 			//VoteMenuClose();
-			CloseHandle(menu);
+			delete menu;
 		}
 		
 		case MenuAction_Display:
 		{
-			decl String:title[64];
-			GetMenuTitle(menu, title, sizeof(title));
+			char title[64];
+			menu.GetTitle(title, sizeof(title));
 			
-			decl String:buffer[255];
+			char buffer[255];
 			Format(buffer, sizeof(buffer), "%T", title, param1, g_voteInfo[VOTE_NAME]);
 
-			new Handle:panel = Handle:param2;
-			SetPanelTitle(panel, buffer);
+			Panel panel = view_as<Panel>param2;
+			panel.SetTitle(buffer);
 		}
 		
 		case MenuAction_DisplayItem:
 		{
-			decl String:display[64];
-			GetMenuItem(menu, param2, "", 0, _, display, sizeof(display));
+			char display[64];
+			menu.GetItem(param2, "", 0, _, display, sizeof(display));
 		 
 			if (strcmp(display, VOTE_NO) == 0 || strcmp(display, VOTE_YES) == 0)
 			{
-				decl String:buffer[255];
+				char buffer[255];
 				Format(buffer, sizeof(buffer), "%T", display, param1);
 
 				return RedrawMenuItem(buffer);
@@ -302,11 +272,12 @@ public Handler_VoteCallback(Handle:menu, MenuAction:action, param1, param2)
 		
 		case MenuAction_VoteEnd:
 		{
-			decl String:item[64];
-			new Float:percent, Float:limit, votes, totalVotes;
+			char item[64];
+			float percent, limit;
+			int votes, totalVotes;
 
 			GetMenuVoteInfo(param2, votes, totalVotes);
-			GetMenuItem(menu, param1, item, sizeof(item));
+			menu.GetItem(param1, item, sizeof(item));
 			
 			if (strcmp(item, VOTE_NO) == 0 && param1 == 1)
 			{
@@ -315,7 +286,7 @@ public Handler_VoteCallback(Handle:menu, MenuAction:action, param1, param2)
 			
 			percent = GetVotePercent(votes, totalVotes);
 			
-			limit = GetConVarFloat(g_Cvar_Limits[g_voteType]);
+			limit = g_Cvar_Limits[g_voteType].FloatValue;
 			
 			/* :TODO: g_voteClient[userid] needs to be checked */
 
@@ -333,14 +304,14 @@ public Handler_VoteCallback(Handle:menu, MenuAction:action, param1, param2)
 				
 				switch (g_voteType)
 				{
-					case (voteType:gravity):
+					case (gravity):
 					{
 						PrintToChatAll("[SM] %t", "Cvar changed", "sv_gravity", item);					
 						LogAction(-1, -1, "Changing gravity to %s due to vote.", item);
-						SetConVarInt(g_Cvar_Gravity, StringToInt(item));
+						g_Cvar_Gravity.IntValue = StringToInt(item);
 					}
 					
-					case (voteType:burn):
+					case (burn):
 					{
 						PrintToChatAll("[SM] %t", "Set target on fire", "_s", g_voteInfo[VOTE_NAME]);					
 						LogAction(-1, g_voteClient[VOTE_CLIENTID], "Vote burn successful, igniting \"%L\"", g_voteClient[VOTE_CLIENTID]);
@@ -348,7 +319,7 @@ public Handler_VoteCallback(Handle:menu, MenuAction:action, param1, param2)
 						IgniteEntity(g_voteClient[VOTE_CLIENTID], 19.8);	
 					}
 					
-					case (voteType:slay):
+					case (slay):
 					{
 						PrintToChatAll("[SM] %t", "Slayed player", g_voteInfo[VOTE_NAME]);					
 						LogAction(-1, g_voteClient[VOTE_CLIENTID], "Vote slay successful, slaying \"%L\"", g_voteClient[VOTE_CLIENTID]);
@@ -357,18 +328,18 @@ public Handler_VoteCallback(Handle:menu, MenuAction:action, param1, param2)
 						ForcePlayerSuicide(g_voteClient[VOTE_CLIENTID]);
 					}
 					
-					case (voteType:alltalk):
+					case (alltalk):
 					{
-						PrintToChatAll("[SM] %t", "Cvar changed", "sv_alltalk", (GetConVarBool(g_Cvar_Alltalk) ? "0" : "1"));
-						LogAction(-1, -1, "Changing alltalk to %s due to vote.", (GetConVarBool(g_Cvar_Alltalk) ? "0" : "1"));
-						SetConVarBool(g_Cvar_Alltalk, !GetConVarBool(g_Cvar_Alltalk));
+						PrintToChatAll("[SM] %t", "Cvar changed", "sv_alltalk", (g_Cvar_Alltalk.BoolValue ? "0" : "1"));
+						LogAction(-1, -1, "Changing alltalk to %s due to vote.", (g_Cvar_Alltalk.BoolValue ? "0" : "1"));
+						g_Cvar_Alltalk.BoolValue = !g_Cvar_Alltalk.BoolValue;
 					}
 					
-					case (voteType:ff):
+					case (ff):
 					{
-						PrintToChatAll("[SM] %t", "Cvar changed", "mp_friendlyfire", (GetConVarBool(g_Cvar_FF) ? "0" : "1"));
-						LogAction(-1, -1, "Changing friendly fire to %s due to vote.", (GetConVarBool(g_Cvar_FF) ? "0" : "1"));
-						SetConVarBool(g_Cvar_FF, !GetConVarBool(g_Cvar_FF));
+						PrintToChatAll("[SM] %t", "Cvar changed", "mp_friendlyfire", (g_Cvar_FF.BoolValue ? "0" : "1"));
+						LogAction(-1, -1, "Changing friendly fire to %s due to vote.", (g_Cvar_FF.BoolValue ? "0" : "1"));
+						g_Cvar_FF.BoolValue = !g_Cvar_FF.BoolValue;
 					}				
 				}
 			}
@@ -378,28 +349,28 @@ public Handler_VoteCallback(Handle:menu, MenuAction:action, param1, param2)
 	return 0;
 }
 
-public Handler_NativeVoteCallback(Handle:menu, MenuAction:action, param1, param2)
+public int Handler_NativeVoteCallback(NativeVote menu, MenuAction action, int param1, int param2)
 {
 	switch (action)
 	{
 		
 		case MenuAction_End:
 		{
-			NativeVotes_Close(menu);
+			menu.Close();
 		}
 		
 		case MenuAction_Display:
 		{
-			new NativeVotesType:nVoteType = NativeVotes_GetType(menu);
+			NativeVotesType nVoteType = menu.VoteType;
 			if (nVoteType == NativeVotesType_Custom_YesNo || nVoteType == NativeVotesType_Custom_Mult)
 			{
-				decl String:title[64];
-				NativeVotes_GetTitle(menu, title, sizeof(title));
+				char title[64];
+				menu.GetTitle(title, sizeof(title));
 				
-				decl String:buffer[255];
+				char buffer[255];
 				Format(buffer, sizeof(buffer), "%T", title, param1, g_voteInfo[VOTE_NAME]);
 				
-				return _:NativeVotes_RedrawVoteTitle(buffer);
+				return view_as<int>NativeVotes_RedrawVoteTitle(buffer);
 			}
 		}
 		
@@ -407,24 +378,25 @@ public Handler_NativeVoteCallback(Handle:menu, MenuAction:action, param1, param2
 		{
 			if (param1 == VoteCancel_NoVotes)
 			{
-				NativeVotes_DisplayFail(menu, NativeVotesFail_NotEnoughVotes);
+				menu.DisplayFail(NativeVotesFail_NotEnoughVotes);
 				PrintToChatAll("[SM] %t", "No Votes Cast");
 			}
 			else
 			{
-				NativeVotes_DisplayFail(menu, NativeVotesFail_Generic);
+				menu.DisplayFail(NativeVotesFail_Generic);
 			}
 		}
 		
 		case MenuAction_VoteEnd:
 		{
-			decl String:item[64];
-			new Float:percent, Float:limit, votes, totalVotes;
+			char item[64];
+			float percent, limit;
+			int votes, totalVotes;
 			
-			new NativeVotesType:nVoteType = NativeVotes_GetType(menu);
+			NativeVotesType nVoteType = menu.VoteType;
 
 			NativeVotes_GetInfo(param2, votes, totalVotes);
-			NativeVotes_GetItem(menu, param1, item, sizeof(item));
+			menu.GetItem(param1, item, sizeof(item));
 			
 			if (nVoteType == NativeVotesType_Custom_YesNo && param1 == NATIVEVOTES_VOTE_NO)
 			{
@@ -433,7 +405,7 @@ public Handler_NativeVoteCallback(Handle:menu, MenuAction:action, param1, param2
 			
 			percent = GetVotePercent(votes, totalVotes);
 			
-			limit = GetConVarFloat(g_Cvar_Limits[g_voteType]);
+			limit = g_Cvar_Limits[g_voteType].FloatValue;
 			
 			/* :TODO: g_voteClient[userid] needs to be checked */
 
@@ -442,7 +414,7 @@ public Handler_NativeVoteCallback(Handle:menu, MenuAction:action, param1, param2
 			{
 				/* :TODO: g_voteClient[userid] should be used here and set to -1 if not applicable.
 				 */
-				NativeVotes_DisplayFail(menu, NativeVotesFail_Loses);
+				menu.DisplayFail(NativeVotesFail_Loses);
 				LogAction(-1, -1, "Vote failed.");
 				PrintToChatAll("[SM] %t", "Vote Failed", RoundToNearest(100.0*limit), RoundToNearest(100.0*percent), totalVotes);
 			}
@@ -452,47 +424,47 @@ public Handler_NativeVoteCallback(Handle:menu, MenuAction:action, param1, param2
 				
 				switch (g_voteType)
 				{
-					case (voteType:gravity):
+					case (gravity):
 					{
 						PrintToChatAll("[SM] %t", "Cvar changed", "sv_gravity", item);
-						NativeVotes_DisplayPassCustom(menu, "%t", "Cvar changed", "sv_gravity", item);
+						menu.DisplayPassCustom("%t", "Cvar changed", "sv_gravity", item);
 						LogAction(-1, -1, "Changing gravity to %s due to vote.", item);
-						SetConVarInt(g_Cvar_Gravity, StringToInt(item));
+						g_Cvar_Gravity.IntValue = StringToInt(item);
 					}
 					
-					case (voteType:burn):
+					case (burn):
 					{
 						PrintToChatAll("[SM] %t", "Set target on fire", "_s", g_voteInfo[VOTE_NAME]);
-						NativeVotes_DisplayPassCustom(menu, "%t", "Set target on fire", "_s", g_voteInfo[VOTE_NAME]);
+						menu.DisplayPassCustom("%t", "Set target on fire", "_s", g_voteInfo[VOTE_NAME]);
 						LogAction(-1, g_voteClient[VOTE_CLIENTID], "Vote burn successful, igniting \"%L\"", g_voteClient[VOTE_CLIENTID]);
 						
 						IgniteEntity(g_voteClient[VOTE_CLIENTID], 19.8);	
 					}
 					
-					case (voteType:slay):
+					case (slay):
 					{
 						PrintToChatAll("[SM] %t", "Slayed player", g_voteInfo[VOTE_NAME]);
-						NativeVotes_DisplayPassCustom(menu, "%t", "Slayed player", g_voteInfo[VOTE_NAME]);
+						menu.DisplayPassCustom("%t", "Slayed player", g_voteInfo[VOTE_NAME]);
 						LogAction(-1, g_voteClient[VOTE_CLIENTID], "Vote slay successful, slaying \"%L\"", g_voteClient[VOTE_CLIENTID]);
 						
 						ExtinguishEntity(g_voteClient[VOTE_CLIENTID]);
 						ForcePlayerSuicide(g_voteClient[VOTE_CLIENTID]);
 					}
 					
-					case (voteType:alltalk):
+					case (alltalk):
 					{
-						PrintToChatAll("[SM] %t", "Cvar changed", "sv_alltalk", (GetConVarBool(g_Cvar_Alltalk) ? "0" : "1"));
-						NativeVotes_DisplayPassCustom(menu, "%t", "Cvar changed", "sv_alltalk", (GetConVarBool(g_Cvar_Alltalk) ? "0" : "1"));
-						LogAction(-1, -1, "Changing alltalk to %s due to vote.", (GetConVarBool(g_Cvar_Alltalk) ? "0" : "1"));
-						SetConVarBool(g_Cvar_Alltalk, !GetConVarBool(g_Cvar_Alltalk));
+						PrintToChatAll("[SM] %t", "Cvar changed", "sv_alltalk", (g_Cvar_Alltalk.BoolValue ? "0" : "1"));
+						menu.DisplayPassCustom("%t", "Cvar changed", "sv_alltalk", (g_Cvar_Alltalk.BoolValue ? "0" : "1"));
+						LogAction(-1, -1, "Changing alltalk to %s due to vote.", (g_Cvar_Alltalk.BoolValue ? "0" : "1"));
+						g_Cvar_Alltalk.BoolValue = !g_Cvar_Alltalk.BoolValue;
 					}
 					
-					case (voteType:ff):
+					case (ff):
 					{
-						PrintToChatAll("[SM] %t", "Cvar changed", "mp_friendlyfire", (GetConVarBool(g_Cvar_FF) ? "0" : "1"));
-						NativeVotes_DisplayPassCustom(menu, "%t", "Cvar changed", "mp_friendlyfire", (GetConVarBool(g_Cvar_FF) ? "0" : "1"));
-						LogAction(-1, -1, "Changing friendly fire to %s due to vote.", (GetConVarBool(g_Cvar_FF) ? "0" : "1"));
-						SetConVarBool(g_Cvar_FF, !GetConVarBool(g_Cvar_FF));
+						PrintToChatAll("[SM] %t", "Cvar changed", "mp_friendlyfire", (g_Cvar_FF.BoolValue ? "0" : "1"));
+						menu.DisplayPassCustom("%t", "Cvar changed", "mp_friendlyfire", (g_Cvar_FF.BoolValue ? "0" : "1"));
+						LogAction(-1, -1, "Changing friendly fire to %s due to vote.", (g_Cvar_FF.BoolValue ? "0" : "1"));
+						g_Cvar_FF.BoolValue = !g_Cvar_FF.BoolValue;
 					}				
 				}
 			}
@@ -523,14 +495,14 @@ VoteMenuClose()
 }
 */
 
-Float:GetVotePercent(votes, totalVotes)
+float GetVotePercent(int votes, int totalVotes)
 {
 	return FloatDiv(float(votes),float(totalVotes));
 }
 
-bool:TestVoteDelay(client)
+bool TestVoteDelay(int client)
 {
- 	new delay = Internal_CheckVoteDelay();
+ 	int delay = Internal_CheckVoteDelay();
 	
  	if (delay > 0)
  	{
@@ -554,7 +526,7 @@ bool:TestVoteDelay(client)
 	return true;
 }
 
-bool:Internal_IsVoteInProgress()
+bool Internal_IsVoteInProgress()
 {
 	if (g_NativeVotes)
 	{
@@ -564,7 +536,7 @@ bool:Internal_IsVoteInProgress()
 	return IsVoteInProgress();	
 }
 
-Internal_CheckVoteDelay()
+int Internal_CheckVoteDelay()
 {
 	if (g_NativeVotes)
 	{
@@ -574,7 +546,7 @@ Internal_CheckVoteDelay()
 	return CheckVoteDelay();	
 }
 
-bool:Internal_IsNewVoteAllowed()
+bool Internal_IsNewVoteAllowed()
 {
 	if (g_NativeVotes)
 	{

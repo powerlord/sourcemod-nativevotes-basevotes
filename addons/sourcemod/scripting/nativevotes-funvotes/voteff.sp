@@ -32,7 +32,7 @@
  * Version: $Id$
  */
 
-DisplayVoteFFMenu(client)
+void DisplayVoteFFMenu(int client)
 {
 	if (Internal_IsVoteInProgress())
 	{
@@ -48,66 +48,71 @@ DisplayVoteFFMenu(client)
 	LogAction(client, -1, "\"%L\" initiated a friendly fire vote.", client);
 	ShowActivity2(client, "[SM] ", "%t", "Initiated Vote FF");
 	
-	g_voteType = voteType:ff;
+	g_voteType = ff;
 	g_voteInfo[VOTE_NAME][0] = '\0';
 	
 	if (g_NativeVotes)
 	{
-		new Handle:hVoteMenu = NativeVotes_Create(Handler_NativeVoteCallback, NativeVotesType_Custom_YesNo, MenuAction:MENU_ACTIONS_ALL);
+		NativeVote hVoteMenu = new NativeVote(Handler_NativeVoteCallback, NativeVotesType_Custom_YesNo, MENU_ACTIONS_ALL);
 		
-		if (GetConVarBool(g_Cvar_FF))
+		if (g_Cvar_FF.BoolValue)
 		{
-			NativeVotes_SetTitle(hVoteMenu, "Voteff Off");
+			hVoteMenu.SetTitle("Voteff Off");
 		}
 		else
 		{
-			NativeVotes_SetTitle(hVoteMenu, "Voteff On");
+			hVoteMenu.SetTitle("Voteff On");
 		}
-		NativeVotes_DisplayToAll(hVoteMenu, 20);		
+		hVoteMenu.DisplayVoteToAll(20);		
 	}
 	else
 	{
-		new Handle:hVoteMenu = CreateMenu(Handler_VoteCallback, MenuAction:MENU_ACTIONS_ALL);
+		Menu hVoteMenu = new Menu(Handler_VoteCallback, MENU_ACTIONS_ALL);
 		
-		if (GetConVarBool(g_Cvar_FF))
+		if (g_Cvar_FF.BoolValue)
 		{
-			SetMenuTitle(hVoteMenu, "Voteff Off");
+			hVoteMenu.SetTitle("Voteff Off");
 		}
 		else
 		{
-			SetMenuTitle(hVoteMenu, "Voteff On");
+			hVoteMenu.SetTitle("Voteff On");
 		}
 		
-		AddMenuItem(hVoteMenu, VOTE_YES, "Yes");
-		AddMenuItem(hVoteMenu, VOTE_NO, "No");
-		SetMenuExitButton(hVoteMenu, false);
-		VoteMenuToAll(hVoteMenu, 20);
+		hVoteMenu.AddItem(VOTE_YES, "Yes");
+		hVoteMenu.AddItem(VOTE_NO, "No");
+		hVoteMenu.ExitButton = false;
+		hVoteMenu.DisplayVoteToAll(20);
 	}
 }
 
-public AdminMenu_VoteFF(Handle:topmenu, 
-							  TopMenuAction:action,
-							  TopMenuObject:object_id,
-							  param,
-							  String:buffer[],
-							  maxlength)
+public void AdminMenu_VoteFF(Handle topmenu, 
+							  TopMenuAction action,
+							  TopMenuObject object_id,
+							  int param,
+							  char[] buffer,
+							  int maxlength)
 {
-	if (action == TopMenuAction_DisplayOption)
+	switch(action)
 	{
-		Format(buffer, maxlength, "%T", "Vote FF", param);
-	}
-	else if (action == TopMenuAction_SelectOption)
-	{
-		DisplayVoteFFMenu(param);
-	}
-	else if (action == TopMenuAction_DrawOption)
-	{	
-		/* disable this option if a vote is already running */
-		buffer[0] = !Internal_IsNewVoteAllowed() ? ITEMDRAW_IGNORE : ITEMDRAW_DEFAULT;
+		case TopMenuAction_DisplayOption:
+		{
+			Format(buffer, maxlength, "%T", "Vote FF", param);
+		}
+		
+		case TopMenuAction_SelectOption:
+		{
+			DisplayVoteFFMenu(param);
+		}
+		
+		case TopMenuAction_DrawOption:
+		{	
+			/* disable this option if a vote is already running */
+			buffer[0] = !Internal_IsNewVoteAllowed() ? ITEMDRAW_IGNORE : ITEMDRAW_DEFAULT;
+		}
 	}
 }
 
-public Action:Command_VoteFF(client, args)
+public Action Command_VoteFF(int client, int args)
 {
 	if (args > 0)
 	{
