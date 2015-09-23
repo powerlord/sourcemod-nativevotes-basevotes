@@ -51,7 +51,7 @@ void DisplayVoteMapMenu(int client, int mapCount, char[][] maps)
 		
 		if (mapCount == 1)
 		{
-			strcopy(g_voteInfo[VOTE_NAME], sizeof(g_voteInfo[]), maps[0]);
+			GetMapDisplayName(maps[0], g_voteInfo[VOTE_NAME], sizeof(g_voteInfo[]));
 			
 			voteMenu = new NativeVote(Handler_NativeVoteCallback, NativeVotesType_ChgLevel, MENU_ACTIONS_ALL);
 			
@@ -67,7 +67,9 @@ void DisplayVoteMapMenu(int client, int mapCount, char[][] maps)
 			// No title, builtin type
 			for (int i = 0; i < mapCount; i++)
 			{
-				voteMenu.AddItem(maps[i], maps[i]);
+				char displayName[PLATFORM_MAX_PATH];
+				GetMapDisplayName(maps[i], displayName, sizeof(displayName));
+				voteMenu.AddItem(maps[i], displayName);
 			}
 		}
 		
@@ -79,7 +81,7 @@ void DisplayVoteMapMenu(int client, int mapCount, char[][] maps)
 		
 		if (mapCount == 1)
 		{
-			strcopy(g_voteInfo[VOTE_NAME], sizeof(g_voteInfo[]), maps[0]);
+			GetMapDisplayName(maps[0], g_voteInfo[VOTE_NAME], sizeof(g_voteInfo[]));
 				
 			voteMenu.SetTitle("Change Map To");
 			voteMenu.AddItem(maps[0], "Yes");
@@ -216,7 +218,7 @@ public int MenuHandler_Map(Menu menu, MenuAction action, int param1, int param2)
 		{
 			char title[128];
 			Format(title, sizeof(title), "%T", "Please select a map", param1);
-			Panel panel = view_as<Panel>param2;
+			Panel panel = view_as<Panel>(param2);
 			panel.SetTitle(title);
 		}
 	}
@@ -333,12 +335,14 @@ int LoadMapList(Menu menu)
 	menu.RemoveAllItems();
 	
 	char map_name[PLATFORM_MAX_PATH];
+	char displayName[PLATFORM_MAX_PATH];
 	int map_count = g_map_array.Length;
 	
 	for (int i = 0; i < map_count; i++)
 	{
 		g_map_array.GetString(i, map_name, sizeof(map_name));
-		menu.AddItem(map_name, map_name);
+		GetMapDisplayName(map_name, displayName, sizeof(displayName));
+		menu.AddItem(map_name, displayName);
 	}
 	
 	return map_count;

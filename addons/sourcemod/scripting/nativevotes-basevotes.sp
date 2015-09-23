@@ -120,7 +120,7 @@ public void OnPluginStart()
 	g_Cvar_Limits[0] = CreateConVar("sm_vote_map", "0.60", "percent required for successful map vote.", 0, true, 0.05, true, 1.0);
 	g_Cvar_Limits[1] = CreateConVar("sm_vote_kick", "0.60", "percent required for successful kick vote.", 0, true, 0.05, true, 1.0);
 	g_Cvar_Limits[2] = CreateConVar("sm_vote_ban", "0.60", "percent required for successful ban vote.", 0, true, 0.05, true, 1.0);
-	CreateConVar("nativevotes_basevotes_version", VERSION, "NativeVotes Basic Votes version", FCVAR_PLUGIN|FCVAR_NOTIFY|FCVAR_DONTRECORD|FCVAR_SPONLY);
+	CreateConVar("nativevotes_basevotes_version", VERSION, "NativeVotes Basic Votes version", FCVAR_NOTIFY|FCVAR_DONTRECORD|FCVAR_SPONLY);
 	
 	/* Account for late loading */
 	TopMenu topmenu;
@@ -129,7 +129,7 @@ public void OnPluginStart()
 		OnAdminMenuReady(topmenu);
 	}
 	
-	g_SelectedMaps = CreateArray(PLATFORM_MAX_PATH);
+	g_SelectedMaps = new ArrayList(PLATFORM_MAX_PATH);
 	
 	g_MapList = new Menu(MenuHandler_Map, MenuAction_DrawItem|MenuAction_Display);
 	g_MapList.SetTitle("%T", "Please select a map", LANG_SERVER);
@@ -411,8 +411,12 @@ public int Handler_VoteCallback(Menu menu, MenuAction action, int param1, int pa
 					
 					case (map):
 					{
+						// single-vote items don't use the display item
+						char displayName[PLATFORM_MAX_PATH];
+						GetMapDisplayName(item, displayName, sizeof(displayName));
+						
 						LogAction(-1, -1, "Changing map to %s due to vote.", item);
-						PrintToChatAll("[SM] %t", "Changing map", item);
+						PrintToChatAll("[SM] %t", "Changing map", displayName);
 						DataPack dp;
 						CreateDataTimer(5.0, Timer_ChangeMap, dp);
 						dp.WriteString(item);
@@ -569,10 +573,14 @@ public int Handler_NativeVoteCallback(NativeVote menu, MenuAction action, int pa
 							menu.GetDetails(item, sizeof(item));
 						}
 						
+						// single-vote items don't use the display item
+						char displayName[PLATFORM_MAX_PATH];
+						GetMapDisplayName(item, displayName, sizeof(displayName));
+						
 						//menu.DisplayPass(item);
-						menu.DisplayPassEx(NativeVotesPass_ChgLevel, item);
+						menu.DisplayPassEx(NativeVotesPass_ChgLevel, displayName);
 						LogAction(-1, -1, "Changing map to %s due to vote.", item);
-						PrintToChatAll("[SM] %t", "Changing map", item);
+						PrintToChatAll("[SM] %t", "Changing map", displayName);
 						DataPack dp;
 						CreateDataTimer(5.0, Timer_ChangeMap, dp);
 						dp.WriteString(item);		

@@ -121,7 +121,7 @@ public void OnPluginStart()
 	g_Cvar_Limits[2] = CreateConVar("sm_vote_slay", "0.60", "percent required for successful slay vote.", 0, true, 0.05, true, 1.0);
 	g_Cvar_Limits[3] = CreateConVar("sm_vote_alltalk", "0.60", "percent required for successful alltalk vote.", 0, true, 0.05, true, 1.0);
 	g_Cvar_Limits[4] = CreateConVar("sm_vote_ff", "0.60", "percent required for successful friendly fire vote.", 0, true, 0.05, true, 1.0);
-	CreateConVar("nativevotes_funvotes_version", VERSION, "NativeVotes Fun Votes version", FCVAR_PLUGIN|FCVAR_NOTIFY|FCVAR_DONTRECORD|FCVAR_SPONLY);
+	CreateConVar("nativevotes_funvotes_version", VERSION, "NativeVotes Fun Votes version", FCVAR_NOTIFY|FCVAR_DONTRECORD|FCVAR_SPONLY);
 	
 	g_Cvar_Gravity = FindConVar("sv_gravity");
 	g_Cvar_Alltalk = FindConVar("sv_alltalk");
@@ -244,7 +244,7 @@ public int Handler_VoteCallback(Menu menu, MenuAction action, int param1, int pa
 			char buffer[255];
 			Format(buffer, sizeof(buffer), "%T", title, param1, g_voteInfo[VOTE_NAME]);
 
-			Panel panel = view_as<Panel>param2;
+			Panel panel = view_as<Panel>(param2);
 			panel.SetTitle(buffer);
 		}
 		
@@ -370,7 +370,7 @@ public int Handler_NativeVoteCallback(NativeVote menu, MenuAction action, int pa
 				char buffer[255];
 				Format(buffer, sizeof(buffer), "%T", title, param1, g_voteInfo[VOTE_NAME]);
 				
-				return view_as<int>NativeVotes_RedrawVoteTitle(buffer);
+				return view_as<int>(NativeVotes_RedrawVoteTitle(buffer));
 			}
 		}
 		
